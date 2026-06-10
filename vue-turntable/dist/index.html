@@ -23,7 +23,6 @@
             padding: 20px;
         }
 
-        /* 转盘容器 */
         .turntable-container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 50%;
@@ -45,8 +44,8 @@
             transform: scale(0.98);
         }
 
-        /* 抽奖按钮 */
-        .pointer-btn {
+        /* 抽奖按钮（中心按钮） */
+        .center-btn {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -68,49 +67,48 @@
             text-align: center;
         }
 
-        /* 固定指针（在上方） */
+        /* 固定指针（在上方正中间） */
         .fixed-pointer {
             position: absolute;
-            top: -30px;
+            top: -28px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
             border-left: 20px solid transparent;
             border-right: 20px solid transparent;
-            border-top: 40px solid #ff4444;
+            border-top: 45px solid #ff4444;
             z-index: 20;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
         }
         
-        .fixed-pointer::after {
-            content: "▼";
+        .fixed-pointer::before {
+            content: "";
             position: absolute;
-            top: -48px;
-            left: -12px;
-            font-size: 24px;
-            color: #ff4444;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            top: -52px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6666, #ff0000);
+            border-radius: 50%;
         }
 
-        .pointer-btn:active {
+        .center-btn:active {
             transform: translate(-50%, -50%) scale(0.95);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .pointer-btn span:first-child {
+        .center-btn span:first-child {
             font-size: 28px;
             font-weight: bold;
             letter-spacing: 2px;
         }
 
-        .pointer-btn span:last-child {
+        .center-btn span:last-child {
             font-size: 14px;
             margin-top: 5px;
             opacity: 0.9;
         }
 
-        /* 信息面板 */
         .info-panel {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -121,7 +119,6 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         }
 
-        /* 用户信息表单 */
         .user-form {
             margin-bottom: 20px;
             padding-bottom: 15px;
@@ -182,15 +179,6 @@
             text-align: center;
         }
 
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
         .last-result {
             font-size: 14px;
             color: #764ba2;
@@ -214,26 +202,15 @@
             color: #c62828;
         }
 
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: opacity 0.2s;
-        }
-
         @media (max-width: 600px) {
-            .pointer-btn {
+            .center-btn {
                 width: 70px;
                 height: 70px;
             }
-            .pointer-btn span:first-child {
+            .center-btn span:first-child {
                 font-size: 20px;
             }
-            .pointer-btn span:last-child {
+            .center-btn span:last-child {
                 font-size: 10px;
             }
             .info-panel {
@@ -244,31 +221,29 @@
                 top: -20px;
                 border-left: 15px solid transparent;
                 border-right: 15px solid transparent;
-                border-top: 30px solid #ff4444;
+                border-top: 32px solid #ff4444;
             }
-            .fixed-pointer::after {
+            .fixed-pointer::before {
                 top: -38px;
-                left: -9px;
-                font-size: 18px;
+                left: -8px;
+                width: 16px;
+                height: 16px;
             }
         }
     </style>
 </head>
 <body>
     <div style="display: flex; flex-direction: column; align-items: center;">
-        <!-- 转盘区域 -->
         <div class="turntable-container">
             <div class="fixed-pointer"></div>
             <canvas id="wheelCanvas" width="500" height="500"></canvas>
-            <div class="pointer-btn" id="spinBtn">
+            <div class="center-btn" id="spinBtn">
                 <span>抽奖</span>
                 <span>SPIN</span>
             </div>
         </div>
 
-        <!-- 信息面板 -->
         <div class="info-panel">
-            <!-- 用户信息填写区域 -->
             <div class="user-form">
                 <div class="form-group">
                     <label>📱 手机号 / 微信号 *</label>
@@ -283,17 +258,16 @@
         </div>
     </div>
 
-    <!-- LeanCloud SDK -->
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
     
     <script>
-        // ==================== 配置区域 ====================
+        // ==================== 配置 ====================
         const LEANCLOUD_CONFIG = {
             appId: "lypAdm04Ue9NTv3Fq3ONeVgk-MdYXbMMI",
             appKey: "3pDgFD1mhMrcy14dLgsFh5NX"
         };
         
-        // 奖品配置
+        // 奖品配置（从12点钟方向顺时针排列）
         const PRIZES = [
             { name: "特等奖", color: "#FFD700", probability: 1 },
             { name: "一等奖", color: "#FF6B6B", probability: 10 },
@@ -302,7 +276,7 @@
             { name: "参与奖", color: "#95E77E", probability: 40 }
         ];
         
-        // 计算角度区间
+        // 计算扇区（从0度开始，0度=12点钟方向）
         let segments = [];
         let currentAngle = 0;
         for (let prize of PRIZES) {
@@ -312,17 +286,16 @@
                 color: prize.color,
                 start: currentAngle,
                 end: currentAngle + angleSize,
-                probability: prize.probability
+                midAngle: currentAngle + angleSize / 2  // 扇区中间角度
             });
             currentAngle += angleSize;
         }
         
-        // ==================== 初始化 LeanCloud ====================
+        // ==================== LeanCloud ====================
         let isLeanCloudReady = false;
         let currentUserId = '';
         let userContact = '';
         
-        // 加载保存的用户信息
         function loadUserInfo() {
             const savedContact = localStorage.getItem('userContact');
             if (savedContact) {
@@ -332,7 +305,6 @@
             }
         }
         
-        // 保存用户联系方式
         function saveUserContact() {
             const contact = document.getElementById('userContact').value.trim();
             if (!contact) {
@@ -340,7 +312,6 @@
                 document.getElementById('userContact').classList.add('error');
                 return false;
             }
-            
             document.getElementById('userContact').classList.remove('error');
             userContact = contact;
             localStorage.setItem('userContact', contact);
@@ -349,15 +320,11 @@
             return true;
         }
         
-        // 初始化 LeanCloud
         function initLeanCloud() {
             if (typeof AV === 'undefined') {
-                console.log('等待 SDK 加载...');
                 setTimeout(initLeanCloud, 500);
                 return;
             }
-            
-            console.log('✅ SDK 版本:', AV.version);
             
             try {
                 AV.init({
@@ -365,70 +332,45 @@
                     appKey: LEANCLOUD_CONFIG.appKey
                 });
                 
-                // 生成唯一用户ID
                 let userId = localStorage.getItem('turntable_userId');
                 if (!userId) {
                     userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                     localStorage.setItem('turntable_userId', userId);
                 }
                 currentUserId = userId;
-                
                 isLeanCloudReady = true;
-                console.log('✅ LeanCloud 初始化成功, 用户ID:', currentUserId);
-                updateStatus('✅ 已连接云端，请填写联系方式后抽奖', 'success');
+                console.log('✅ LeanCloud 初始化成功');
             } catch (error) {
                 console.error('LeanCloud 初始化失败:', error);
-                updateStatus('⚠️ 云端连接失败，抽奖结果将仅保存在本地', 'error');
                 isLeanCloudReady = false;
-                currentUserId = 'local_' + Date.now();
             }
         }
         
-        // 保存抽奖结果到 LeanCloud
-        async function savePrizeResult(prizeName, angle) {
-            // 检查是否填写了联系方式
+        async function savePrizeResult(prizeName, finalAngle) {
             if (!userContact) {
-                updateStatus('⚠️ 请先填写手机号/微信号再抽奖', 'error');
+                updateStatus('⚠️ 请先填写联系方式', 'error');
                 return false;
             }
             
-            console.log('开始保存抽奖结果:', prizeName, '用户:', userContact);
-            
-            const recordData = {
-                prize: prizeName,
-                userContact: userContact,
-                userId: currentUserId,
-                angle: angle,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent.substring(0, 200)
-            };
-            
             if (!isLeanCloudReady) {
-                // 本地保存
                 let records = JSON.parse(localStorage.getItem('drawRecords') || '[]');
-                records.push(recordData);
+                records.push({ prize: prizeName, userContact: userContact, time: new Date().toISOString() });
                 localStorage.setItem('drawRecords', JSON.stringify(records.slice(-50)));
-                console.log('📀 本地保存:', recordData);
                 return true;
             }
             
             try {
                 const PrizeRecord = AV.Object.extend('PrizeRecord');
                 const record = new PrizeRecord();
-                
                 record.set('prize', prizeName);
                 record.set('userContact', userContact);
                 record.set('userId', currentUserId);
-                record.set('angle', angle);
                 record.set('timestamp', new Date().toISOString());
-                record.set('userAgent', navigator.userAgent.substring(0, 200));
-                
-                const result = await record.save();
-                console.log('✅ 抽奖结果已保存:', prizeName, result.id);
+                await record.save();
+                console.log('✅ 已保存:', prizeName, userContact);
                 return true;
             } catch (error) {
                 console.error('保存失败:', error);
-                updateStatus(`❌ 保存失败: ${error.message}`, 'error');
                 return false;
             }
         }
@@ -437,12 +379,10 @@
             const statusDiv = document.getElementById('statusMsg');
             statusDiv.textContent = message;
             statusDiv.className = 'status';
-            if (type === 'error') {
-                statusDiv.classList.add('error');
-            }
+            if (type === 'error') statusDiv.classList.add('error');
         }
         
-        // ==================== 转盘绘制逻辑 ====================
+        // ==================== 转盘 ====================
         const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
         let isSpinning = false;
@@ -453,81 +393,96 @@
             const size = Math.min(window.innerWidth - 80, 500);
             canvas.width = size;
             canvas.height = size;
-            canvas.style.width = `${size}px`;
-            canvas.style.height = `${size}px`;
             drawWheel();
         }
         
         function drawWheel() {
             const size = canvas.width;
-            const centerX = size / 2;
-            const centerY = size / 2;
+            const cx = size / 2;
+            const cy = size / 2;
             const radius = size / 2 - 10;
             
             ctx.clearRect(0, 0, size, size);
             
             let startAngle = currentRotation * Math.PI / 180;
             for (let i = 0; i < segments.length; i++) {
-                const segment = segments[i];
-                const angleSize = (segment.end - segment.start) * Math.PI / 180;
+                const seg = segments[i];
+                const angleSize = (seg.end - seg.start) * Math.PI / 180;
                 const endAngle = startAngle + angleSize;
                 
                 ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-                ctx.fillStyle = segment.color;
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, startAngle, endAngle);
+                ctx.fillStyle = seg.color;
                 ctx.fill();
                 ctx.strokeStyle = 'white';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
                 ctx.save();
-                ctx.translate(centerX, centerY);
+                ctx.translate(cx, cy);
                 ctx.rotate(startAngle + angleSize / 2);
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                const textRadius = radius * 0.65;
-                ctx.font = `bold ${Math.floor(size / 20)}px "PingFang SC", "Microsoft YaHei"`;
+                ctx.font = `bold ${Math.floor(size / 20)}px "PingFang SC"`;
                 ctx.fillStyle = "#333";
-                ctx.fillText(segment.name, textRadius, 0);
+                ctx.fillText(seg.name, radius * 0.65, 0);
                 ctx.restore();
                 
                 startAngle = endAngle;
             }
             
             ctx.beginPath();
-            ctx.arc(centerX, centerY, radius * 0.12, 0, 2 * Math.PI);
+            ctx.arc(cx, cy, radius * 0.12, 0, 2 * Math.PI);
             ctx.fillStyle = "#FFD700";
             ctx.fill();
         }
         
-        function getRandomPrize() {
+        // 根据停止角度判断奖品（指针在12点钟方向，角度0）
+        function getPrizeByAngle(stopAngle) {
+            // 转盘实际展示的角度 = (原始角度 - 旋转角度) mod 360
+            // 指针在0度方向，所以奖品是哪个扇区包含0度
+            let realAngle = (360 - (stopAngle % 360)) % 360;
+            
+            for (let i = 0; i < segments.length; i++) {
+                const seg = segments[i];
+                if (realAngle >= seg.start && realAngle < seg.end) {
+                    return seg.name;
+                }
+            }
+            return segments[0].name;
+        }
+        
+        function getRandomPrizeByProbability() {
             const random = Math.random() * 100;
             let cumulative = 0;
             for (let i = 0; i < PRIZES.length; i++) {
                 cumulative += PRIZES[i].probability;
-                if (random <= cumulative) {
-                    return PRIZES[i].name;
-                }
+                if (random <= cumulative) return PRIZES[i].name;
             }
             return PRIZES[0].name;
         }
         
+        // 根据奖品计算目标停止角度
+        function getTargetAngleByPrize(prizeName) {
+            const prizeIndex = PRIZES.findIndex(p => p.name === prizeName);
+            const targetSegment = segments[prizeIndex];
+            // 让扇区的中间位置对准指针（0度）
+            let targetAngle = (360 - targetSegment.midAngle) % 360;
+            return targetAngle;
+        }
+        
         function spinWheel() {
             if (isSpinning) return;
-            
-            // 检查是否填写了联系方式
             if (!userContact) {
-                updateStatus('⚠️ 请先填写手机号/微信号再抽奖', 'error');
+                updateStatus('⚠️ 请先填写联系方式', 'error');
                 document.getElementById('userContact').classList.add('error');
                 return;
             }
             
-            const prize = getRandomPrize();
-            const prizeIndex = PRIZES.findIndex(p => p.name === prize);
-            const targetSegment = segments[prizeIndex];
-            const targetRotation = (360 - (targetSegment.start + (targetSegment.end - targetSegment.start) / 2)) % 360;
-            const spins = 360 * 8 + targetRotation;
+            const prize = getRandomPrizeByProbability();
+            const targetAngle = getTargetAngleByPrize(prize);
+            const spins = 360 * 8 + targetAngle;
             const startRotation = currentRotation;
             const duration = 3000;
             const startTime = performance.now();
@@ -549,7 +504,12 @@
                     currentRotation = (startRotation + spins) % 360;
                     drawWheel();
                     
-                    savePrizeResult(prize, currentRotation);
+                    // 验证：检查停止角度对应的奖品是否正确
+                    const finalAngle = currentRotation;
+                    const verifiedPrize = getPrizeByAngle(finalAngle);
+                    console.log(`目标奖品: ${prize}, 实际奖品: ${verifiedPrize}, 停止角度: ${finalAngle}`);
+                    
+                    savePrizeResult(prize, finalAngle);
                     document.getElementById('lastResult').innerHTML = `🎉 恭喜 ${userContact} 获得：${prize} 🎉`;
                     updateStatus(`🎁 抽中：${prize}，结果已保存`, 'success');
                     
@@ -568,7 +528,7 @@
             animationId = requestAnimationFrame(animate);
         }
         
-        // ==================== 事件绑定 ====================
+        // ==================== 初始化 ====================
         window.addEventListener('resize', resizeCanvas);
         document.getElementById('spinBtn').addEventListener('click', spinWheel);
         document.getElementById('saveUserBtn').addEventListener('click', saveUserContact);
@@ -580,7 +540,7 @@
         initLeanCloud();
         loadUserInfo();
         
-        console.log('转盘已启动');
+        console.log('转盘已启动，指针在正上方12点钟方向');
     </script>
 </body>
 </html>
