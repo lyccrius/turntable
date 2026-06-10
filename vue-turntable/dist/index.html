@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>幸运大转盘 - 指针在右侧</title>
+    <title>幸运大转盘 - 指针在上方</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -43,25 +43,25 @@
             font-size: 24px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        /* 固定指针 - 正右方 */
+        /* 固定指针 - 正上方 */
         .fixed-pointer {
             position: absolute;
-            right: -30px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-top: 20px solid transparent;
-            border-bottom: 20px solid transparent;
-            border-right: 45px solid #ff4444;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 45px solid #ff4444;
             z-index: 20;
-            filter: drop-shadow(2px 0 6px rgba(0,0,0,0.3));
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
         }
         .fixed-pointer::before {
-            content: "▶";
+            content: "▼";
             position: absolute;
-            right: -52px;
-            top: -11px;
+            top: -52px;
+            left: -11px;
             font-size: 22px;
             color: #ff4444;
         }
@@ -121,8 +121,8 @@
         }
         @media (max-width: 600px) {
             .center-btn { width: 60px; height: 60px; font-size: 18px; }
-            .fixed-pointer { right: -22px; border-top: 15px solid transparent; border-bottom: 15px solid transparent; border-right: 35px solid #ff4444; }
-            .fixed-pointer::before { right: -40px; top: -9px; font-size: 18px; }
+            .fixed-pointer { top: -22px; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 35px solid #ff4444; }
+            .fixed-pointer::before { top: -40px; left: -9px; font-size: 18px; }
         }
     </style>
 </head>
@@ -248,9 +248,9 @@
         div.className = 'status ' + (type === 'error' ? 'error' : 'success');
     }
     
-    // 根据指针位置判断中奖（指针在正右方 = 90度）
+    // 根据指针位置判断中奖（指针在正上方 = 0度）
     function getPrizeAtPointer() {
-        let pointerAngle = (-currentRotation + 90 + 360) % 360;
+        let pointerAngle = (-currentRotation + 360) % 360;
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
             if (pointerAngle >= seg.start && pointerAngle < seg.end) {
@@ -264,7 +264,7 @@
         const segment = segments.find(s => s.name === prizeName);
         if (!segment) return 0;
         let targetPointerAngle = segment.mid;
-        let targetRotation = (90 - targetPointerAngle + 360) % 360;
+        let targetRotation = (360 - targetPointerAngle) % 360;
         return targetRotation;
     }
     
@@ -422,7 +422,7 @@
     loadUserInfo();
     
     console.log('=== 转盘已启动 ===');
-    console.log('指针固定在正右方，中奖判断基于右侧指针');
+    console.log('指针固定在正上方，中奖判断基于上方指针');
 </script>
 </body>
 </html>
