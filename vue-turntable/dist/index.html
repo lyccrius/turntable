@@ -212,12 +212,11 @@
         
         // 奖品配置（按顺时针顺序，从0°开始）
         const PRIZES = [
-            { name: "一等奖", color: "#FF6B6B", probability: 5 },
-            { name: "二等奖", color: "#4ECDC4", probability: 10 },
-            { name: "三等奖", color: "#FFE66D", probability: 15 },
-            { name: "参与奖", color: "#95E77E", probability: 30 },
-            { name: "谢谢参与", color: "#C7C7C7", probability: 30 },
-            { name: "幸运奖", color: "#FFA07A", probability: 10 }
+            { name: "特等奖", color: "#FF6B6B", probability: 0.5 },
+            { name: "一等奖", color: "#FF6B6B", probability: 10 },
+            { name: "二等奖", color: "#4ECDC4", probability: 19.5 },
+            { name: "三等奖", color: "#FFE66D", probability: 30 },
+            { name: "参与奖", color: "#95E77E", probability: 40 }
         ];
         
         // 计算每个奖品对应的角度区间（基于概率）
