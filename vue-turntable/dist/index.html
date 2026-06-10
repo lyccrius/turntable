@@ -45,7 +45,7 @@
             transform: scale(0.98);
         }
 
-        /* 抽奖按钮 */
+        /* 抽奖按钮 - 修复：这是指针，不是按钮 */
         .pointer-btn {
             position: absolute;
             top: 50%;
@@ -66,6 +66,32 @@
             color: white;
             font-weight: bold;
             text-align: center;
+        }
+
+        /* 添加固定指针三角形 */
+        .fixed-pointer {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff4444;
+            z-index: 20;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        /* 添加指针小圆点装饰 */
+        .fixed-pointer::after {
+            content: "▼";
+            position: absolute;
+            top: -48px;
+            left: -12px;
+            font-size: 24px;
+            color: #ff4444;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .pointer-btn:active {
@@ -173,6 +199,17 @@
                 margin-top: 20px;
                 padding: 15px;
             }
+            .fixed-pointer {
+                top: -20px;
+                border-left: 15px solid transparent;
+                border-right: 15px solid transparent;
+                border-top: 30px solid #ff4444;
+            }
+            .fixed-pointer::after {
+                top: -38px;
+                left: -9px;
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -180,6 +217,8 @@
     <div style="display: flex; flex-direction: column; align-items: center;">
         <!-- 转盘区域 -->
         <div class="turntable-container">
+            <!-- 添加固定指针 -->
+            <div class="fixed-pointer"></div>
             <canvas id="wheelCanvas" width="500" height="500"></canvas>
             <div class="pointer-btn" id="spinBtn">
                 <span>抽奖</span>
@@ -198,22 +237,20 @@
         </div>
     </div>
 
-    <!-- LeanCloud SDK -->
+    <!-- LeanCloud SDK - 使用您确认可用的版本 -->
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
-    //<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@5.0.5/dist/av-min.js"></script>
     
     <script>
         // ==================== 配置区域 ====================
-        // 【重要】请替换成您的 LeanCloud 真实配置
         const LEANCLOUD_CONFIG = {
-            appId: "lypAdm04Ue9NTv3Fq3ONeVgk-MdYXbMMI",           // 替换为您的 App ID
-            appKey: "3pDgFD1mhMrcy14dLgsFh5NX",          // 替换为您的 App Key
-            serverURL: "https://api.lyccri.us"  // 国内版必填，国际版可注释或删除此行
+            appId: "lypAdm04Ue9NTv3Fq3ONeVgk-MdYXbMMI",
+            appKey: "3pDgFD1mhMrcy14dLgsFh5NX"
+            // 国际版不需要 serverURL
         };
         
         // 奖品配置（按顺时针顺序，从0°开始）
         const PRIZES = [
-            { name: "特等奖", color: "#FF6B6B", probability: 1 },
+            { name: "特等奖", color: "#FFD700", probability: 1 },
             { name: "一等奖", color: "#FF6B6B", probability: 10 },
             { name: "二等奖", color: "#4ECDC4", probability: 19 },
             { name: "三等奖", color: "#FFE66D", probability: 30 },
@@ -239,52 +276,84 @@
         let isLeanCloudReady = false;
         let currentUserId = '';
         
-        try {
-            // 配置 LeanCloud
-            const avConfig = { appId: LEANCLOUD_CONFIG.appId, appKey: LEANCLOUD_CONFIG.appKey };
-            if (LEANCLOUD_CONFIG.serverURL && LEANCLOUD_CONFIG.serverURL !== "https://您的专属域名.leanapp.cn") {
-                avConfig.serverURL = LEANCLOUD_CONFIG.serverURL;
+        // 等待 SDK 加载完成
+        function initLeanCloud() {
+            if (typeof AV === 'undefined') {
+                console.log('等待 SDK 加载...');
+                setTimeout(initLeanCloud, 500);
+                return;
             }
-            AV.init(avConfig);
             
-            // 生成或读取用户ID
-            let userId = localStorage.getItem('turntable_userId');
-            if (!userId) {
-                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('turntable_userId', userId);
+            console.log('✅ SDK 版本:', AV.version);
+            
+            try {
+                // 国际版初始化，不需要 serverURL
+                AV.init({
+                    appId: LEANCLOUD_CONFIG.appId,
+                    appKey: LEANCLOUD_CONFIG.appKey
+                });
+                
+                // 生成或读取用户ID
+                let userId = localStorage.getItem('turntable_userId');
+                if (!userId) {
+                    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('turntable_userId', userId);
+                }
+                currentUserId = userId;
+                document.getElementById('userIdDisplay').innerText = `ID: ${userId.substr(0, 16)}...`;
+                
+                isLeanCloudReady = true;
+                updateStatus('✅ LeanCloud 已连接，抽奖结果将自动保存', 'success');
+                console.log('✅ LeanCloud 初始化成功');
+            } catch (error) {
+                console.error('LeanCloud 初始化失败:', error);
+                updateStatus('⚠️ LeanCloud 初始化失败，抽奖结果将仅保存在本地', 'error');
+                isLeanCloudReady = false;
+                currentUserId = 'local_' + Date.now();
+                document.getElementById('userIdDisplay').innerText = `本地模式: ${currentUserId.substr(0, 16)}...`;
             }
-            currentUserId = userId;
-            document.getElementById('userIdDisplay').innerText = `ID: ${userId.substr(0, 16)}...`;
-            
-            isLeanCloudReady = true;
-            updateStatus('✅ LeanCloud 已连接，抽奖结果将自动保存', 'success');
-        } catch (error) {
-            console.error('LeanCloud 初始化失败:', error);
-            updateStatus('⚠️ LeanCloud 初始化失败，抽奖结果将仅保存在本地', 'error');
-            isLeanCloudReady = false;
-            currentUserId = 'local_' + Date.now();
-            document.getElementById('userIdDisplay').innerText = `本地模式: ${currentUserId.substr(0, 16)}...`;
         }
         
         // 保存抽奖结果到 LeanCloud
         async function savePrizeResult(prizeName, angle) {
+            console.log('开始保存抽奖结果:', prizeName, '用户:', currentUserId);
+            
             if (!isLeanCloudReady) {
-                console.log('本地模式，未上传:', prizeName);
-                return false;
+                // 本地保存作为备份
+                let records = JSON.parse(localStorage.getItem('drawRecords') || '[]');
+                records.push({
+                    prize: prizeName,
+                    time: new Date().toISOString(),
+                    userId: currentUserId
+                });
+                localStorage.setItem('drawRecords', JSON.stringify(records.slice(-50)));
+                console.log('📀 本地保存:', prizeName);
+                updateStatus(`📀 本地保存: ${prizeName}`, 'success');
+                return true;
             }
             
             try {
+                // 使用正确的 AV.Object 创建方式
                 const PrizeRecord = AV.Object.extend('PrizeRecord');
                 const record = new PrizeRecord();
+                
+                // 设置字段
                 record.set('prize', prizeName);
                 record.set('userId', currentUserId);
                 record.set('angle', angle);
                 record.set('timestamp', new Date().toISOString());
                 record.set('userAgent', navigator.userAgent.substring(0, 200));
                 
-                await record.save();
-                console.log('✅ 抽奖结果已保存:', prizeName);
-                updateStatus(`✅ 已保存: ${prizeName}`, 'success');
+                // 保存到云端
+                const result = await record.save();
+                console.log('✅ 抽奖结果已保存到云端:', prizeName);
+                console.log('保存的记录ID:', result.id);
+                console.log('保存的数据:', {
+                    prize: prizeName,
+                    userId: currentUserId,
+                    timestamp: new Date().toISOString()
+                });
+                updateStatus(`✅ 已保存到云端: ${prizeName}`, 'success');
                 return true;
             } catch (error) {
                 console.error('保存失败:', error);
@@ -377,6 +446,7 @@
             for (let i = 0; i < PRIZES.length; i++) {
                 cumulative += PRIZES[i].probability;
                 if (random <= cumulative) {
+                    console.log('抽中:', PRIZES[i].name, '随机数:', random);
                     return PRIZES[i].name;
                 }
             }
@@ -388,6 +458,8 @@
             if (isSpinning) return;
             
             const prize = getRandomPrize();
+            console.log('本次抽奖奖品:', prize);
+            
             // 找到奖品对应的索引
             const prizeIndex = PRIZES.findIndex(p => p.name === prize);
             const targetSegment = segments[prizeIndex];
@@ -457,17 +529,10 @@
         
         // 启动
         resizeCanvas();
+        initLeanCloud();
         
         // 显示使用说明
-        console.log('转盘已启动，抽奖结果将自动保存到 LeanCloud');
-        console.log('用户ID:', currentUserId);
-        
-        // 添加 LeanCloud 表格创建提示
-        if (isLeanCloudReady) {
-            setTimeout(() => {
-                console.log('%c💡 提示：请在 LeanCloud 控制台创建 Class "PrizeRecord" 来查看抽奖记录', 'color: #764ba2; font-size: 14px');
-            }, 1000);
-        }
+        console.log('转盘已启动');
     </script>
 </body>
 </html>
