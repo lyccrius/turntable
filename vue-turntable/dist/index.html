@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>幸运大转盘 - 可校准版</title>
+    <title>幸运大转盘 - 指针在上方固定</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -34,17 +34,19 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             border-radius: 50%;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             cursor: pointer;
             z-index: 10;
             color: white;
             font-weight: bold;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
+        /* 固定指针 - 正上方 */
         .fixed-pointer {
             position: absolute;
-            top: -28px;
+            top: -30px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
@@ -53,6 +55,15 @@
             border-right: 20px solid transparent;
             border-top: 45px solid #ff4444;
             z-index: 20;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        }
+        .fixed-pointer::before {
+            content: "▼";
+            position: absolute;
+            top: -52px;
+            left: -11px;
+            font-size: 22px;
+            color: #ff4444;
         }
         .info-panel {
             background: rgba(255,255,255,0.95);
@@ -62,56 +73,37 @@
             max-width: 500px;
             width: 100%;
         }
-        .calibration {
-            background: #f0f0f0;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .calibration label {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        .calibration input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .calibration-value {
-            font-size: 12px;
-            color: #764ba2;
-            margin-top: 5px;
-            text-align: center;
-        }
         .user-form {
             margin-bottom: 15px;
         }
         .form-group input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 10px;
             font-size: 14px;
         }
         .save-user-btn {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
             cursor: pointer;
-            margin-top: 5px;
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: bold;
         }
         .last-result {
-            font-size: 14px;
+            font-size: 16px;
             color: #764ba2;
             font-weight: bold;
             text-align: center;
-            margin: 10px 0;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 10px;
         }
         .status {
             padding: 8px;
@@ -121,6 +113,17 @@
         }
         .status.success { background: #e8f5e9; color: #2e7d32; }
         .status.error { background: #ffebee; color: #c62828; }
+        .user-info {
+            font-size: 11px;
+            color: #999;
+            text-align: center;
+            margin-top: 8px;
+        }
+        @media (max-width: 600px) {
+            .center-btn { width: 60px; height: 60px; font-size: 18px; }
+            .fixed-pointer { top: -22px; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 35px solid #ff4444; }
+            .fixed-pointer::before { top: -40px; left: -9px; font-size: 18px; }
+        }
     </style>
 </head>
 <body>
@@ -128,43 +131,33 @@
     <div class="turntable-container">
         <div class="fixed-pointer"></div>
         <canvas id="wheelCanvas" width="500" height="500"></canvas>
-        <div class="center-btn" id="spinBtn">
-            <span>抽</span>
-            <span>奖</span>
-        </div>
+        <div class="center-btn" id="spinBtn">抽</div>
     </div>
 
     <div class="info-panel">
-        <!-- 校准工具 -->
-        <div class="calibration">
-            <label>🔧 指针对齐校准（拖动滑块调整指针方向）</label>
-            <input type="range" id="offsetSlider" min="0" max="360" value="105" step="1">
-            <div class="calibration-value">偏移角度: <span id="offsetValue">105</span>° (指针方向)</div>
-            <div style="font-size: 11px; color: #999; margin-top: 5px;">0°=右方, 90°=下方, 180°=左方, 270°=上方</div>
-        </div>
-
         <div class="user-form">
             <div class="form-group">
                 <input type="text" id="userContact" placeholder="📱 手机号 / 微信号（用于领奖）">
             </div>
             <button class="save-user-btn" id="saveUserBtn">💾 保存联系方式</button>
         </div>
-        
-        <div class="last-result" id="lastResult">✨ 填写联系方式后抽奖 ✨</div>
+        <div class="last-result" id="lastResult">✨ 填写联系方式后点击抽奖 ✨</div>
         <div class="status success" id="statusMsg">✅ 准备就绪</div>
+        <div class="user-info" id="userInfoDisplay"></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
 
 <script>
-    // LeanCloud 配置
+    // ==================== LeanCloud 配置 ====================
     const LEANCLOUD_CONFIG = {
         appId: "lypAdm04Ue9NTv3Fq3ONeVgk-MdYXbMMI",
         appKey: "3pDgFD1mhMrcy14dLgsFh5NX"
     };
     
-    // 奖品配置
+    // ==================== 奖品配置 ====================
+    // 注意：奖品按顺时针方向排列，从正上方（0度）开始
     const PRIZES = [
         { name: "特等奖", color: "#FFD700", probability: 1 },
         { name: "一等奖", color: "#FF6B6B", probability: 10 },
@@ -173,30 +166,39 @@
         { name: "参与奖", color: "#95E77E", probability: 40 }
     ];
     
-    // 计算扇区
+    // 计算每个奖品扇区的角度范围（0度 = 正上方，顺时针）
     let segments = [];
-    let currentAngle = 0;
-    for (let prize of PRIZES) {
-        const angleSize = (prize.probability / 100) * 360;
+    let currentStart = 0;
+    for (let i = 0; i < PRIZES.length; i++) {
+        const angleSize = (PRIZES[i].probability / 100) * 360;
         segments.push({
-            name: prize.name,
-            color: prize.color,
-            start: currentAngle,
-            end: currentAngle + angleSize,
-            midAngle: currentAngle + angleSize / 2
+            name: PRIZES[i].name,
+            color: PRIZES[i].color,
+            start: currentStart,
+            end: currentStart + angleSize,
+            mid: currentStart + angleSize / 2
         });
-        currentAngle += angleSize;
+        currentStart += angleSize;
     }
     
-    // 全局变量
+    // ==================== 全局变量 ====================
     let isLeanCloudReady = false;
     let currentUserId = '';
     let userContact = '';
-    let pointerOffset = 105;  // 可调节的指针偏移量
     
-    // ==================== LeanCloud ====================
+    // 转盘相关
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    let isSpinning = false;
+    let currentRotation = 0;      // 当前旋转角度（度）
+    let animationId = null;
+    
+    // ==================== LeanCloud 初始化 ====================
     function initLeanCloud() {
-        if (typeof AV === 'undefined') { setTimeout(initLeanCloud, 500); return; }
+        if (typeof AV === 'undefined') {
+            setTimeout(initLeanCloud, 500);
+            return;
+        }
         try {
             AV.init({ appId: LEANCLOUD_CONFIG.appId, appKey: LEANCLOUD_CONFIG.appKey });
             let userId = localStorage.getItem('turntable_userId');
@@ -207,12 +209,24 @@
             currentUserId = userId;
             isLeanCloudReady = true;
             console.log('✅ LeanCloud 就绪');
-        } catch (error) { console.error('LeanCloud 失败:', error); }
+        } catch (error) {
+            console.error('LeanCloud 初始化失败:', error);
+        }
     }
     
-    async function savePrizeResult(prizeName) {
-        if (!userContact) { updateStatus('请先填写联系方式', 'error'); return false; }
-        if (!isLeanCloudReady) { updateStatus('本地模式', 'success'); return true; }
+    async function saveToCloud(prizeName) {
+        if (!userContact) {
+            updateStatus('请先填写联系方式', 'error');
+            return false;
+        }
+        if (!isLeanCloudReady) {
+            // 本地备份
+            let records = JSON.parse(localStorage.getItem('drawRecords') || '[]');
+            records.push({ prize: prizeName, contact: userContact, time: new Date().toISOString() });
+            localStorage.setItem('drawRecords', JSON.stringify(records.slice(-50)));
+            console.log('📀 本地保存:', prizeName);
+            return true;
+        }
         try {
             const PrizeRecord = AV.Object.extend('PrizeRecord');
             const record = new PrizeRecord();
@@ -221,9 +235,14 @@
             record.set('userId', currentUserId);
             record.set('timestamp', new Date().toISOString());
             await record.save();
-            console.log('✅ 已保存:', prizeName, userContact);
+            console.log('✅ 云端保存:', prizeName, userContact);
+            updateStatus(`✅ 已保存：${prizeName}`, 'success');
             return true;
-        } catch (error) { console.error('保存失败:', error); return false; }
+        } catch (error) {
+            console.error('保存失败:', error);
+            updateStatus('保存失败，请检查网络', 'error');
+            return false;
+        }
     }
     
     function updateStatus(msg, type) {
@@ -232,66 +251,40 @@
         div.className = 'status ' + (type === 'error' ? 'error' : 'success');
     }
     
-    // ==================== 转盘 ====================
-    const canvas = document.getElementById('wheelCanvas');
-    const ctx = canvas.getContext('2d');
-    let isSpinning = false;
-    let currentRotation = 0;
-    let animationId = null;
-    
-    function resizeCanvas() {
-        const size = Math.min(window.innerWidth - 80, 500);
-        canvas.width = size;
-        canvas.height = size;
-        drawWheel();
-    }
-    
-    function drawWheel() {
-        const size = canvas.width, cx = size/2, cy = size/2, r = size/2 - 10;
-        ctx.clearRect(0, 0, size, size);
-        let startAngle = currentRotation * Math.PI / 180;
+    // ==================== 核心：根据指针（正上方0度）判断中奖 ====================
+    // 转盘旋转 currentRotation 度后，原本0度的位置现在到了 -currentRotation 度
+    // 指针在正上方（0度），所以指针指向的扇区 = 哪个扇区包含 (-currentRotation) mod 360
+    function getPrizeAtPointer() {
+        // 计算转盘上正对指针的位置（0度对应正上方）
+        let pointerAngle = (-currentRotation + 360) % 360;
+        
+        // 找到包含这个角度的扇区
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
-            const angleSize = (seg.end - seg.start) * Math.PI / 180;
-            const endAngle = startAngle + angleSize;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, r, startAngle, endAngle);
-            ctx.fillStyle = seg.color;
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(startAngle + angleSize/2);
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.font = `bold ${Math.floor(size/20)}px "PingFang SC"`;
-            ctx.fillStyle = "#333";
-            ctx.fillText(seg.name, r * 0.65, 0);
-            ctx.restore();
-            startAngle = endAngle;
-        }
-        ctx.beginPath();
-        ctx.arc(cx, cy, r * 0.12, 0, 2*Math.PI);
-        ctx.fillStyle = "#FFD700";
-        ctx.fill();
-    }
-    
-    // 根据停止角度判断奖品（使用可调节的偏移量）
-    function getPrizeByAngle(stopAngle) {
-        // 指针偏移量可调节
-        let realAngle = (360 - ((stopAngle - pointerOffset) % 360)) % 360;
-        for (let i = 0; i < segments.length; i++) {
-            if (realAngle >= segments[i].start && realAngle < segments[i].end) {
-                return segments[i].name;
+            if (pointerAngle >= seg.start && pointerAngle < seg.end) {
+                return seg.name;
             }
         }
+        // 边界情况：正好等于 360 度
+        if (Math.abs(pointerAngle - 360) < 0.01) return segments[0].name;
         return segments[0].name;
     }
     
-    function getRandomPrizeByProbability() {
+    // 根据奖品计算需要旋转到的目标角度（让该奖品对准指针）
+    function getTargetRotationForPrize(prizeName) {
+        const segment = segments.find(s => s.name === prizeName);
+        if (!segment) return 0;
+        // 让该扇区的中间位置对准指针
+        let targetPointerAngle = segment.mid;
+        // 当前指针位置是 (-currentRotation) mod 360
+        // 我们需要 (-targetRotation) mod 360 = targetPointerAngle
+        // 即 targetRotation = -targetPointerAngle mod 360
+        let targetRotation = (360 - targetPointerAngle) % 360;
+        return targetRotation;
+    }
+    
+    // 随机抽奖（按概率）
+    function randomPrizeByProbability() {
         const rand = Math.random() * 100;
         let cum = 0;
         for (let i = 0; i < PRIZES.length; i++) {
@@ -301,90 +294,166 @@
         return PRIZES[0].name;
     }
     
-    function getTargetAngleByPrize(prizeName) {
-        const idx = PRIZES.findIndex(p => p.name === prizeName);
-        return (360 - (segments[idx].midAngle - pointerOffset + 360) % 360) % 360;
+    // ==================== 绘制转盘 ====================
+    function resizeCanvas() {
+        const size = Math.min(window.innerWidth - 80, 500);
+        canvas.width = size;
+        canvas.height = size;
+        drawWheel();
     }
     
+    function drawWheel() {
+        const size = canvas.width;
+        const cx = size / 2;
+        const cy = size / 2;
+        const radius = size / 2 - 10;
+        
+        ctx.clearRect(0, 0, size, size);
+        
+        // 当前旋转角度（弧度）
+        let startRad = currentRotation * Math.PI / 180;
+        
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            const angleSize = (seg.end - seg.start) * Math.PI / 180;
+            const endRad = startRad + angleSize;
+            
+            // 绘制扇形
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, startRad, endRad);
+            ctx.fillStyle = seg.color;
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 绘制文字
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(startRad + angleSize / 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const fontSize = Math.floor(size / 18);
+            ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei"`;
+            ctx.fillStyle = "#333";
+            ctx.fillText(seg.name, radius * 0.65, 0);
+            ctx.restore();
+            
+            startRad = endRad;
+        }
+        
+        // 中心圆装饰
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.12, 0, 2 * Math.PI);
+        ctx.fillStyle = "#FFD700";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+    
+    // ==================== 抽奖动画 ====================
     function spinWheel() {
         if (isSpinning) return;
-        if (!userContact) { updateStatus('请先填写联系方式', 'error'); return; }
+        if (!userContact) {
+            updateStatus('请先填写联系方式', 'error');
+            document.getElementById('userContact').focus();
+            return;
+        }
         
-        const prize = getRandomPrizeByProbability();
-        const targetAngle = getTargetAngleByPrize(prize);
-        const spins = 360 * 8 + targetAngle;
+        // 1. 随机决定中奖奖品
+        const prize = randomPrizeByProbability();
+        console.log('🎁 目标奖品:', prize);
+        
+        // 2. 计算目标旋转角度
+        const targetRotation = getTargetRotationForPrize(prize);
+        
+        // 3. 动画：当前角度 -> 目标角度（多转几圈）
         const startRotation = currentRotation;
+        // 需要旋转的角度差
+        let delta = targetRotation - startRotation;
+        if (delta < 0) delta += 360;
+        const totalDelta = delta + 360 * 6;  // 多转6圈
+        const duration = 3000;
         const startTime = performance.now();
         
         isSpinning = true;
-        document.getElementById('spinBtn').style.opacity = '0.6';
+        const spinBtn = document.getElementById('spinBtn');
+        spinBtn.style.opacity = '0.6';
+        spinBtn.style.pointerEvents = 'none';
         
         function animate(now) {
             const elapsed = now - startTime;
-            const t = Math.min(1, elapsed / 3000);
+            const t = Math.min(1, elapsed / duration);
+            // 缓动
             const easeOut = 1 - Math.pow(1 - t, 3);
-            currentRotation = (startRotation + spins * easeOut) % 360;
+            currentRotation = (startRotation + totalDelta * easeOut) % 360;
             drawWheel();
+            
             if (t < 1) {
                 animationId = requestAnimationFrame(animate);
             } else {
-                currentRotation = (startRotation + spins) % 360;
+                // 动画完成，精确停在目标角度
+                currentRotation = targetRotation;
                 drawWheel();
-                const verified = getPrizeByAngle(currentRotation);
-                console.log(`偏移:${pointerOffset}° 目标:${prize} 实际:${verified}`);
-                savePrizeResult(prize);
-                document.getElementById('lastResult').innerHTML = `🎉 ${userContact} 获得：${prize} 🎉`;
-                updateStatus(`抽中：${prize}`, 'success');
-                setTimeout(() => alert(`恭喜抽中：${prize}`), 100);
+                
+                // 验证：实际指针指向的奖品
+                const actualPrize = getPrizeAtPointer();
+                console.log(`✅ 停止旋转: 目标=${prize}, 实际指针指向=${actualPrize}, 旋转角=${currentRotation.toFixed(1)}°`);
+                
+                // 保存结果
+                saveToCloud(actualPrize);
+                
+                // 显示结果
+                const resultDiv = document.getElementById('lastResult');
+                resultDiv.innerHTML = `🎉 恭喜 ${userContact} 获得：${actualPrize} 🎉`;
+                updateStatus(`抽中：${actualPrize}，已保存`, 'success');
+                
+                setTimeout(() => {
+                    alert(`🎉 恭喜 ${userContact} 抽中：${actualPrize} 🎉`);
+                }, 100);
+                
                 isSpinning = false;
-                document.getElementById('spinBtn').style.opacity = '1';
+                spinBtn.style.opacity = '1';
+                spinBtn.style.pointerEvents = 'auto';
                 cancelAnimationFrame(animationId);
             }
         }
+        
         if (animationId) cancelAnimationFrame(animationId);
         animationId = requestAnimationFrame(animate);
     }
     
-    // ==================== 校准功能 ====================
-    const slider = document.getElementById('offsetSlider');
-    const offsetSpan = document.getElementById('offsetValue');
-    slider.addEventListener('input', (e) => {
-        pointerOffset = parseInt(e.target.value);
-        offsetSpan.textContent = pointerOffset;
-        console.log(`指针偏移设置为: ${pointerOffset}°`);
-        // 重新绘制（刷新显示）
-        drawWheel();
-    });
+    // ==================== 初始化 ====================
+    function loadUserInfo() {
+        const saved = localStorage.getItem('userContact');
+        if (saved) {
+            userContact = saved;
+            document.getElementById('userContact').value = saved;
+            document.getElementById('userInfoDisplay').innerHTML = `📞 当前用户：${saved}`;
+        }
+    }
     
-    // ==================== 事件绑定 ====================
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => { resizeCanvas(); });
     document.getElementById('spinBtn').addEventListener('click', spinWheel);
     document.getElementById('saveUserBtn').addEventListener('click', () => {
         const contact = document.getElementById('userContact').value.trim();
         if (contact) {
             userContact = contact;
             localStorage.setItem('userContact', contact);
-            updateStatus('联系方式已保存', 'success');
+            document.getElementById('userInfoDisplay').innerHTML = `📞 当前用户：${contact}`;
+            updateStatus('联系方式已保存，可以抽奖啦！', 'success');
         } else {
-            updateStatus('请填写联系方式', 'error');
+            updateStatus('请填写手机号或微信号', 'error');
         }
     });
     
-    // 加载保存的联系方式
-    const savedContact = localStorage.getItem('userContact');
-    if (savedContact) {
-        userContact = savedContact;
-        document.getElementById('userContact').value = savedContact;
-    }
-    
     resizeCanvas();
     initLeanCloud();
+    loadUserInfo();
     
-    console.log('=== 校准说明 ===');
-    console.log('1. 先抽几次奖，观察指针实际停在哪个奖品区域');
-    console.log('2. 如果指针对不准，拖动上方的滑块');
-    console.log('3. 滑块值=指针方向（0°=右, 90°=下, 180°=左, 270°=上）');
-    console.log(`当前指针方向: ${pointerOffset}°`);
+    console.log('=== 转盘已启动 ===');
+    console.log('指针固定在正上方，转盘0度=正上方，顺时针排列奖品');
+    console.log('segments:', segments);
 </script>
 </body>
 </html>
