@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>幸运大转盘 - 指针在上方固定</title>
+    <title>幸运大转盘 - 指针在右侧</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -43,25 +43,25 @@
             font-size: 24px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        /* 固定指针 - 正上方 */
+        /* 固定指针 - 正右方 */
         .fixed-pointer {
             position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
             width: 0;
             height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 45px solid #ff4444;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-right: 45px solid #ff4444;
             z-index: 20;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+            filter: drop-shadow(2px 0 6px rgba(0,0,0,0.3));
         }
         .fixed-pointer::before {
-            content: "▼";
+            content: "▶";
             position: absolute;
-            top: -52px;
-            left: -11px;
+            right: -52px;
+            top: -11px;
             font-size: 22px;
             color: #ff4444;
         }
@@ -121,8 +121,8 @@
         }
         @media (max-width: 600px) {
             .center-btn { width: 60px; height: 60px; font-size: 18px; }
-            .fixed-pointer { top: -22px; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 35px solid #ff4444; }
-            .fixed-pointer::before { top: -40px; left: -9px; font-size: 18px; }
+            .fixed-pointer { right: -22px; border-top: 15px solid transparent; border-bottom: 15px solid transparent; border-right: 35px solid #ff4444; }
+            .fixed-pointer::before { right: -40px; top: -9px; font-size: 18px; }
         }
     </style>
 </head>
@@ -157,7 +157,6 @@
     };
     
     // ==================== 奖品配置 ====================
-    // 注意：奖品按顺时针方向排列，从正上方（0度）开始
     const PRIZES = [
         { name: "特等奖", color: "#FFD700", probability: 1 },
         { name: "一等奖", color: "#FF6B6B", probability: 10 },
@@ -186,11 +185,10 @@
     let currentUserId = '';
     let userContact = '';
     
-    // 转盘相关
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     let isSpinning = false;
-    let currentRotation = 0;      // 当前旋转角度（度）
+    let currentRotation = 0;
     let animationId = null;
     
     // ==================== LeanCloud 初始化 ====================
@@ -220,7 +218,6 @@
             return false;
         }
         if (!isLeanCloudReady) {
-            // 本地备份
             let records = JSON.parse(localStorage.getItem('drawRecords') || '[]');
             records.push({ prize: prizeName, contact: userContact, time: new Date().toISOString() });
             localStorage.setItem('drawRecords', JSON.stringify(records.slice(-50)));
@@ -251,39 +248,26 @@
         div.className = 'status ' + (type === 'error' ? 'error' : 'success');
     }
     
-    // ==================== 核心：根据指针（正上方0度）判断中奖 ====================
-    // 转盘旋转 currentRotation 度后，原本0度的位置现在到了 -currentRotation 度
-    // 指针在正上方（0度），所以指针指向的扇区 = 哪个扇区包含 (-currentRotation) mod 360
+    // 根据指针位置判断中奖（指针在正右方 = 90度）
     function getPrizeAtPointer() {
-        // 计算转盘上正对指针的位置（0度对应正上方）
-        let pointerAngle = (-currentRotation + 360) % 360;
-        
-        // 找到包含这个角度的扇区
+        let pointerAngle = (-currentRotation + 90 + 360) % 360;
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
             if (pointerAngle >= seg.start && pointerAngle < seg.end) {
                 return seg.name;
             }
         }
-        // 边界情况：正好等于 360 度
-        if (Math.abs(pointerAngle - 360) < 0.01) return segments[0].name;
         return segments[0].name;
     }
     
-    // 根据奖品计算需要旋转到的目标角度（让该奖品对准指针）
     function getTargetRotationForPrize(prizeName) {
         const segment = segments.find(s => s.name === prizeName);
         if (!segment) return 0;
-        // 让该扇区的中间位置对准指针
         let targetPointerAngle = segment.mid;
-        // 当前指针位置是 (-currentRotation) mod 360
-        // 我们需要 (-targetRotation) mod 360 = targetPointerAngle
-        // 即 targetRotation = -targetPointerAngle mod 360
-        let targetRotation = (360 - targetPointerAngle) % 360;
+        let targetRotation = (90 - targetPointerAngle + 360) % 360;
         return targetRotation;
     }
     
-    // 随机抽奖（按概率）
     function randomPrizeByProbability() {
         const rand = Math.random() * 100;
         let cum = 0;
@@ -310,7 +294,6 @@
         
         ctx.clearRect(0, 0, size, size);
         
-        // 当前旋转角度（弧度）
         let startRad = currentRotation * Math.PI / 180;
         
         for (let i = 0; i < segments.length; i++) {
@@ -318,7 +301,6 @@
             const angleSize = (seg.end - seg.start) * Math.PI / 180;
             const endRad = startRad + angleSize;
             
-            // 绘制扇形
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, radius, startRad, endRad);
@@ -328,7 +310,6 @@
             ctx.lineWidth = 2;
             ctx.stroke();
             
-            // 绘制文字
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(startRad + angleSize / 2);
@@ -343,7 +324,6 @@
             startRad = endRad;
         }
         
-        // 中心圆装饰
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 0.12, 0, 2 * Math.PI);
         ctx.fillStyle = "#FFD700";
@@ -360,19 +340,14 @@
             return;
         }
         
-        // 1. 随机决定中奖奖品
         const prize = randomPrizeByProbability();
         console.log('🎁 目标奖品:', prize);
         
-        // 2. 计算目标旋转角度
         const targetRotation = getTargetRotationForPrize(prize);
-        
-        // 3. 动画：当前角度 -> 目标角度（多转几圈）
         const startRotation = currentRotation;
-        // 需要旋转的角度差
         let delta = targetRotation - startRotation;
         if (delta < 0) delta += 360;
-        const totalDelta = delta + 360 * 6;  // 多转6圈
+        const totalDelta = delta + 360 * 6;
         const duration = 3000;
         const startTime = performance.now();
         
@@ -384,7 +359,6 @@
         function animate(now) {
             const elapsed = now - startTime;
             const t = Math.min(1, elapsed / duration);
-            // 缓动
             const easeOut = 1 - Math.pow(1 - t, 3);
             currentRotation = (startRotation + totalDelta * easeOut) % 360;
             drawWheel();
@@ -392,18 +366,14 @@
             if (t < 1) {
                 animationId = requestAnimationFrame(animate);
             } else {
-                // 动画完成，精确停在目标角度
                 currentRotation = targetRotation;
                 drawWheel();
                 
-                // 验证：实际指针指向的奖品
                 const actualPrize = getPrizeAtPointer();
                 console.log(`✅ 停止旋转: 目标=${prize}, 实际指针指向=${actualPrize}, 旋转角=${currentRotation.toFixed(1)}°`);
                 
-                // 保存结果
                 saveToCloud(actualPrize);
                 
-                // 显示结果
                 const resultDiv = document.getElementById('lastResult');
                 resultDiv.innerHTML = `🎉 恭喜 ${userContact} 获得：${actualPrize} 🎉`;
                 updateStatus(`抽中：${actualPrize}，已保存`, 'success');
@@ -452,8 +422,7 @@
     loadUserInfo();
     
     console.log('=== 转盘已启动 ===');
-    console.log('指针固定在正上方，转盘0度=正上方，顺时针排列奖品');
-    console.log('segments:', segments);
+    console.log('指针固定在正右方，中奖判断基于右侧指针');
 </script>
 </body>
 </html>
