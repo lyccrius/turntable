@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>抽奖记录后台管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #764ba2;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* 统计卡片 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        /* 筛选栏 */
+        .filters {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .filter-group input:focus, .filter-group select:focus {
+            border-color: #764ba2;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: #666;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        /* 表格 */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow-x: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #eee;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .prize-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .prize-特等奖 { background: #FFD700; color: #333; }
+        .prize-一等奖 { background: #FF6B6B; color: white; }
+        .prize-二等奖 { background: #4ECDC4; color: white; }
+        .prize-三等奖 { background: #FFE66D; color: #333; }
+        .prize-参与奖 { background: #95E77E; color: white; }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .pagination button.active {
+            background: #764ba2;
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 刷新按钮 */
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📊 抽奖记录后台管理</h1>
+        <div class="subtitle">实时查看用户的抽奖记录和中奖信息</div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats" id="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalCount">-</div>
+            <div class="stat-label">总抽奖次数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="todayCount">-</div>
+            <div class="stat-label">今日抽奖</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="userCount">-</div>
+            <div class="stat-label">参与用户</div>
+        </div>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filters">
+        <div class="filter-group">
+            <label>🏷️ 奖品筛选</label>
+            <select id="prizeFilter">
+                <option value="">全部</option>
+                <option value="特等奖">特等奖</option>
+                <option value="一等奖">一等奖</option>
+                <option value="二等奖">二等奖</option>
+                <option value="三等奖">三等奖</option>
+                <option value="参与奖">参与奖</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>👤 联系方式</label>
+            <input type="text" id="contactFilter" placeholder="手机号/微信号">
+        </div>
+        <div class="filter-group">
+            <label>📅 开始日期</label>
+            <input type="date" id="startDate">
+        </div>
+        <div class="filter-group">
+            <label>📅 结束日期</label>
+            <input type="date" id="endDate">
+        </div>
+        <div class="filter-group">
+            <button class="btn" id="searchBtn">🔍 查询</button>
+            <button class="btn btn-secondary" id="resetBtn">重置</button>
+        </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+        <div class="export-buttons">
+            <button class="btn" id="exportCSVBtn">📎 导出 CSV</button>
+            <button class="btn btn-secondary" id="exportJSONBtn">📄 导出 JSON</button>
+        </div>
+        <span id="recordCount" style="color: #666; font-size: 13px;"></span>
+    </div>
+
+    <!-- 表格 -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>奖品</th>
+                    <th>联系方式</th>
+                    <th>用户ID</th>
+                    <th>抽奖时间</th>
+                    <th>来源</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="6" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<button class="refresh-btn" id="refreshBtn">🔄</button>
+
+<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+
+<script>
+    // ==================== LeanCloud 配置 ====================
+    const LEANCLOUD_CONFIG = {
+        appId: "lypAdm04Ue9NTv3Fq3ONeVgk-MdYXbMMI",
+        appKey: "3pDgFD1mhMrcy14dLgsFh5NX"
+    };
+    
+    // 全局变量
+    let allRecords = [];
+    let filteredRecords = [];
+    let currentPage = 1;
+    const pageSize = 20;
+    
+    // ==================== 初始化 LeanCloud ====================
+    function initLeanCloud() {
+        return new Promise((resolve, reject) => {
+            if (typeof AV === 'undefined') {
+                setTimeout(() => initLeanCloud().then(resolve).catch(reject), 500);
+                return;
+            }
+            try {
+                AV.init({
+                    appId: LEANCLOUD_CONFIG.appId,
+                    appKey: LEANCLOUD_CONFIG.appKey
+                });
+                console.log('✅ LeanCloud 初始化成功');
+                resolve();
+            } catch (error) {
+                console.error('LeanCloud 初始化失败:', error);
+                reject(error);
+            }
+        });
+    }
+    
+    // ==================== 获取所有抽奖记录 ====================
+    async function fetchAllRecords() {
+        try {
+            const PrizeRecord = AV.Object.extend('PrizeRecord');
+            const query = new AV.Query(PrizeRecord);
+            query.descending('createdAt');
+            query.limit(1000);  // 最多获取1000条
+            
+            const results = await query.find();
+            
+            allRecords = results.map(record => ({
+                id: record.id,
+                prize: record.get('prize') || '未知',
+                userContact: record.get('userContact') || '未填写',
+                userId: record.get('userId') || '未知',
+                timestamp: record.get('timestamp') || record.createdAt,
+                createdAt: record.createdAt,
+                userAgent: record.get('userAgent') || ''
+            }));
+            
+            // 按时间倒序
+            allRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            console.log(`📊 获取到 ${allRecords.length} 条记录`);
+            return allRecords;
+        } catch (error) {
+            console.error('获取记录失败:', error);
+            // 尝试从本地读取备份数据
+            const localData = localStorage.getItem('drawRecords');
+            if (localData) {
+                allRecords = JSON.parse(localData);
+                console.log(`📀 从本地读取 ${allRecords.length} 条备份记录`);
+                return allRecords;
+            }
+            throw error;
+        }
+    }
+    
+    // ==================== 统计数据 ====================
+    function updateStats() {
+        const total = filteredRecords.length;
+        const today = new Date().toDateString();
+        const todayCount = filteredRecords.filter(r => 
+            new Date(r.createdAt).toDateString() === today
+        ).length;
+        
+        const uniqueUsers = new Set(filteredRecords.map(r => r.userId)).size;
+        
+        document.getElementById('totalCount').textContent = total;
+        document.getElementById('todayCount').textContent = todayCount;
+        document.getElementById('userCount').textContent = uniqueUsers;
+    }
+    
+    // ==================== 渲染表格 ====================
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const pageRecords = filteredRecords.slice(start, end);
+        
+        if (pageRecords.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">暂无数据</td></tr>';
+            document.getElementById('recordCount').textContent = '共 0 条记录';
+            return;
+        }
+        
+        tbody.innerHTML = pageRecords.map((record, idx) => {
+            const prizeClass = `prize-${record.prize}`;
+            return `
+                <tr>
+                    <td>${start + idx + 1}</td>
+                    <td><span class="prize-badge ${prizeClass}">${record.prize}</span></td>
+                    <td>${escapeHtml(record.userContact)}</td>
+                    <td style="font-size: 11px; color: #888;">${record.userId}</td>
+                    <td>${formatDate(record.createdAt)}</td>
+                    <td>${record.userAgent ? '🌐 网页' : '📱 其他'}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        document.getElementById('recordCount').textContent = `共 ${filteredRecords.length} 条记录`;
+        updateStats();
+        renderPagination();
+    }
+    
+    // ==================== 分页控件 ====================
+    function renderPagination() {
+        const totalPages = Math.ceil(filteredRecords.length / pageSize);
+        const paginationDiv = document.getElementById('pagination');
+        
+        if (totalPages <= 1) {
+            paginationDiv.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">上一页</button>`;
+        
+        for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+            html += `<button class="${currentPage === i ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        
+        if (totalPages > 10) {
+            html += `<span>...</span>`;
+            html += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        
+        html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">下一页</button>`;
+        
+        paginationDiv.innerHTML = html;
+    }
+    
+    function goToPage(page) {
+        currentPage = page;
+        renderTable();
+    }
+    
+    // ==================== 筛选数据 ====================
+    function filterData() {
+        const prizeFilter = document.getElementById('prizeFilter').value;
+        const contactFilter = document.getElementById('contactFilter').value.trim().toLowerCase();
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        filteredRecords = allRecords.filter(record => {
+            if (prizeFilter && record.prize !== prizeFilter) return false;
+            if (contactFilter && !record.userContact.toLowerCase().includes(contactFilter)) return false;
+            
+            if (startDate) {
+                const recordDate = new Date(record.createdAt).toISOString().split('T')[0];
+                if (recordDate < startDate) return false;
+            }
+            if (endDate) {
+                const recordDate = new Date(record.createdAt).toISOString().split('T')[0];
+                if (recordDate > endDate) return false;
+            }
+            return true;
+        });
+        
+        currentPage = 1;
+        renderTable();
+    }
+    
+    // ==================== 导出数据 ====================
+    function exportCSV() {
+        if (filteredRecords.length === 0) {
+            alert('暂无数据可导出');
+            return;
+        }
+        
+        const headers = ['奖品', '联系方式', '用户ID', '抽奖时间'];
+        const rows = filteredRecords.map(record => [
+            record.prize,
+            record.userContact,
+            record.userId,
+            formatDate(record.createdAt)
+        ]);
+        
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${cell}"`).join(','))
+            .join('\n');
+        
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `抽奖记录_${formatDateForFilename(new Date())}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        alert(`已导出 ${filteredRecords.length} 条记录`);
+    }
+    
+    function exportJSON() {
+        if (filteredRecords.length === 0) {
+            alert('暂无数据可导出');
+            return;
+        }
+        
+        const exportData = filteredRecords.map(record => ({
+            奖品: record.prize,
+            联系方式: record.userContact,
+            用户ID: record.userId,
+            抽奖时间: formatDate(record.createdAt)
+        }));
+        
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `抽奖记录_${formatDateForFilename(new Date())}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        alert(`已导出 ${filteredRecords.length} 条记录`);
+    }
+    
+    // ==================== 重置筛选 ====================
+    function resetFilters() {
+        document.getElementById('prizeFilter').value = '';
+        document.getElementById('contactFilter').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        filterData();
+    }
+    
+    // ==================== 刷新数据 ====================
+    async function refreshData() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">加载中...</td></tr>';
+        
+        try {
+            await fetchAllRecords();
+            filterData();
+        } catch (error) {
+            console.error('刷新失败:', error);
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">加载失败，请检查网络或 LeanCloud 配置</td></tr>';
+        }
+    }
+    
+    // ==================== 工具函数 ====================
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+    
+    function formatDateForFilename(date) {
+        return date.toISOString().slice(0, 19).replace(/:/g, '-');
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // ==================== 挂载全局函数 ====================
+    window.goToPage = goToPage;
+    
+    // ==================== 事件绑定 ====================
+    document.getElementById('searchBtn').addEventListener('click', filterData);
+    document.getElementById('resetBtn').addEventListener('click', resetFilters);
+    document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
+    document.getElementById('exportJSONBtn').addEventListener('click', exportJSON);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    
+    // 回车搜索
+    document.getElementById('contactFilter').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') filterData();
+    });
+    
+    // ==================== 启动 ====================
+    async function init() {
+        try {
+            await initLeanCloud();
+            await refreshData();
+        } catch (error) {
+            console.error('初始化失败:', error);
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="no-data">初始化失败，请检查 LeanCloud 配置</td></tr>';
+        }
+    }
+    
+    init();
+</script>
+</body>
+</html>
